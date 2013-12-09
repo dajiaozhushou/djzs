@@ -2,7 +2,7 @@
 
 /**
  * 发送HTTP网络请求类
- *
+ * 
  * @version 3.0.0
  * @author open.qq.com
  * @copyright © 2012, Tencent Corporation. All rights reserved.

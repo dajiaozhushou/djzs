@@ -1,7 +1,6 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: jianwu
+ * User: Mr.wang
  * Date: 13-11-25
  * Time: 下午9:51
  */
