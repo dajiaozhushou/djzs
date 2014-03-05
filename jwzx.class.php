@@ -1,93 +1,82 @@
 <?php
 /**
- * Created by Mr.wang
- * Date: 13-12-1
+ * User: Mr.wang
+ * Date: 13-12-1 
  * Time: 下午5:36
  */
 class jwzx {
     private $username;
     private $password;
     private $jwid;
-    private $sessionid;
-    private $auth;
+	//通过openid从数据库中获取已绑定用户名密码，这里作为演示直接赋值
     function __construct($openid){
-        require_once dirname(__FILE__).'/../../common/config.php';
-        connect();
-        $sql="select username,password,jwid from jwzx where openid='$openid'";
-        $res=mysql_query($sql);
-        $result=mysql_fetch_assoc($res);
-        //var_dump($result);
-        $this->username=$result["username"];
-        $this->password=$result["password"];
-        $this->jwid=$result["jwid"];
+        $this->username='xxx';
+        $this->password='xxx';
+        $this->jwid='xxx';
     }
-    //验证是否成功绑定教务在线
+    //验证是否成功绑定教务在线(本实例仅作演示)
     function auth(){
         if (!$this->username){
-            $this->auth =  '您还没有绑定教务，请回复“绑定教务”绑定';
+            return false;
         }
         else {
-            $login_url		=	'http://jw.djtu.edu.cn/academic/j_acegi_security_check';
-			$post_fields	=	'j_username='.$this->username.'&j_password='.$this->password;
-			$ch = curl_init($login_url);
-			curl_setopt($ch, CURLOPT_HEADER, 1);
-			curl_setopt($ch, CURLOPT_BODY, 0);
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-			curl_setopt($ch, CURLOPT_POST, 1);
-			curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
-			$header = curl_exec($ch);
-			curl_close($ch);
-			preg_match('/Location:(.*);/', $header, $Location);
-			if($Location[1]!=" http://jw.djtu.edu.cn/academic/common/security/login.jsp"){
-			preg_match('/jsessionid=(.*)\r/', $header, $arr);
-			//SAE不支持本地IO故从cookie中读出jsessionid写入header作登录验证
-			$this->sessionid = $arr[1];
-                return true;
-			}
-			else {
-				$this->auth =  '登录错误，请重试,如果您修改了密码请回复"绑定教务"重新绑定';
-			}
+            return true;
         }
     }
     //查课表
     function getKebiao(){
         if($this->auth()){
-            $url='http://jw.djtu.edu.cn/academic/manager/coursearrange/showTimetable.do?id='.$this->jwid.'&yearid=34&termid=1&timetableType=STUDENT&sectionType=COMBINE';
+            //定义cookie保存路径
+            $cookie_file	=	tempnam('./','cookie');
+            $login_url		=	'http://jw.djtu.edu.cn/academic/j_acegi_security_check';
+            $post_fields	=	'j_username='.$this->username.'&j_password='.$this->password;
+            $ch = curl_init($login_url);
+            curl_setopt($ch, CURLOPT_HEADER, 0);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+            curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_file);
+            curl_exec($ch);
+            curl_close($ch);
+
+            $url='http://jw.djtu.edu.cn/academic/manager/coursearrange/showTimetable.do?id='.$this->jwid.'&yearid=33&termid=2&timetableType=STUDENT&sectionType=COMBINE';
             //$post_fields='year=32&term=1&para=0';
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_HEADER, 0);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            $header[]= "Cookie:JSESSIONID=$this->sessionid"; 
-            curl_setopt($ch,CURLOPT_HTTPHEADER,$header); 
+            //curl_setopt($ch, CURLOPT_POST, 1);
+            //curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+            curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_file);
             $table=curl_exec($ch);
             $array=get_td_array($table);
             $str=var_export($array,true);
-            $str=str_replace(iconv('utf-8','gbk','讲课学时'),"\n",$str);
             $kebiao=eval('return '.iconv('gbk','utf-8',$str).';');
-            for ($d=1;$d<=6;$d++){
-            	$shuzu[$d][1]=$kebiao[4][$d];
-            	$shuzu[$d][2]=$kebiao[5][$d];
-            	$shuzu[$d][3]=$kebiao[6][$d];
-            	$shuzu[$d][4]=$kebiao[7][$d];
-            	$shuzu[$d][5]=$kebiao[8][$d];
-            }
-            $shuzu[0][1]=$kebiao[4][7];
-            $shuzu[0][2]=$kebiao[5][7];
-            $shuzu[0][3]=$kebiao[6][7];
-            $shuzu[0][4]=$kebiao[7][7];
-            $shuzu[0][5]=$kebiao[8][7];
-            return $shuzu;
+            return $kebiao;
             curl_close($ch);
 
         }
         else{
-            return $this->auth;
+            return "您还没有绑定，请回复“绑定教务”进入绑定教务地址";
         }
 
     }
     //查成绩
     function getChengji(){
         if($this->auth()){
+
+            $cookie_file	=	tempnam('./','cookie');
+            $login_url		=	'http://jw.djtu.edu.cn/academic/j_acegi_security_check';
+            $post_fields	=	'j_username='.$this->username.'&j_password='.$this->password;
+
+            $ch = curl_init($login_url);
+            curl_setopt($ch, CURLOPT_HEADER, 0);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+            curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_file);
+            curl_exec($ch);
+            curl_close($ch);
+
             $url='http://jw.djtu.edu.cn/academic/manager/score/studentOwnScore.do?groupId=&moduleId=2020';
             $post_fields='year=33&term=2&para=0';
             $ch = curl_init($url);
@@ -95,8 +84,7 @@ class jwzx {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
-            $header[]= "Cookie:JSESSIONID=$this->sessionid"; 
-            curl_setopt($ch,CURLOPT_HTTPHEADER,$header); 
+            curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_file);
             $table=curl_exec($ch);
             $array=get_td_array($table);
             $shu=count($array);
@@ -113,12 +101,25 @@ class jwzx {
 
         }
         else{
-            return $this->auth;
+            return "您还没有绑定，请回复“绑定教务”进入绑定教务地址";
         }
     }
     //按学期查成绩
-    function getChengjiByTerm($year,$term){
+    function getChengjibyTerm($year,$term){
         if($this->auth()){
+            $cookie_file	=	tempnam('./','cookie');
+            $login_url		=	'http://jw.djtu.edu.cn/academic/j_acegi_security_check';
+            $post_fields	=	'j_username='.$this->username.'&j_password='.$this->password;
+
+            $ch = curl_init($login_url);
+            curl_setopt($ch, CURLOPT_HEADER, 0);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+            curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_file);
+            curl_exec($ch);
+            curl_close($ch);
+
             $url='http://jw.djtu.edu.cn/academic/manager/score/studentOwnScore.do?groupId=&moduleId=2020';
             $post_fields='year='.$year.'&term='.$term.'&para=0';
             $ch = curl_init($url);
@@ -126,18 +127,17 @@ class jwzx {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
-            $header[]= "Cookie:JSESSIONID=$this->sessionid"; 
-            curl_setopt($ch,CURLOPT_HTTPHEADER,$header); 
+            curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_file);
             $table=curl_exec($ch);
             $xuefenji=xuefenji($table);
             $array=get_td_array($table);
             $shu=count($array);
-            $chengji='<table><tr><td>课程</td><td>平时</td><td>期末</td><td>总评</td></tr>';
+			$chengji='';
             for($i=2;$i<$shu;$i++){
                 $array2=preg_replace("'([\r\n])[\s]+'", "", $array[$i]);
-                $chengji.='<tr><td>【'.$array2[4].'】</td><td>'.$array2[8].'</td><td>'.$array2[9].'</td><td>'.$array2[10].'</td></tr>';
+                $chengji.='【'.$array2[4].'】'.$array2[10]."<br />";
             }
-            $chengji .='</table>';
+
             $url='http://jw.djtu.edu.cn/academic/manager/score/studentOwnScore.do?groupId=&moduleId=2020';
             $post_fields='year='.$year.'&term='.$term.'&para=0&maxStatus=1';
             $ch = curl_init($url);
@@ -145,8 +145,7 @@ class jwzx {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
-            $header[]= "Cookie:JSESSIONID=$this->sessionid";
-             curl_setopt($ch,CURLOPT_HTTPHEADER,$header); 
+            curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_file);
             $table=curl_exec($ch);
             $xuefenji=xuefenji($table);
             if ($chengji==""){
@@ -157,14 +156,14 @@ class jwzx {
 
         }
         else{
-            return $this->auth;
+            return "您还没有绑定，请回复“绑定教务”进入绑定教务地址";
         }
     }
     //查考试时间
     function getKaoshi(){
         if($this->auth()){
 
-            $cookie_file	=	tempnam(SAE_TMP_PATH,'cookie');
+            $cookie_file	=	tempnam('./','cookie');
             $login_url		=	'http://jw.djtu.edu.cn/academic/j_acegi_security_check';
             $post_fields	=	'j_username='.$this->username.'&j_password='.$this->password;
 
@@ -178,22 +177,23 @@ class jwzx {
             curl_close($ch);
 
             $url='http://jw.djtu.edu.cn/academic/student/exam/index.jsdo';
-            //$url='http://jw.djtu.edu.cn/academic/manager/examstu/studentQueryAllExam.do';
             //$post_fields='year=32&term=1&para=0';
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_HEADER, 0);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            $header[]= "Cookie:JSESSIONID=$this->sessionid";
-            curl_setopt($ch,CURLOPT_HTTPHEADER,$header); 
+            //curl_setopt($ch, CURLOPT_POST, 1);
+            //curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+            curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_file);
             $table=curl_exec($ch);
             $array=get_td_array($table);
             $str=var_export($array,true);
             $exam=eval('return '.iconv('gbk','utf-8',$str).';');
+
             curl_close($ch);
             return $exam;
         }
         else{
-            return $this->auth;
+            return "您还没有绑定，请回复“绑定教务”进入绑定教务地址";
         }
     }
 }
@@ -250,7 +250,7 @@ function get_td_array($table) {
     $table = str_replace("\n","",$table);
     $table = str_replace(" ","",$table);
     $table = explode('{tr}', $table);
-    array_pop($table); 
+    array_pop($table); //PHP开源代码
     foreach ($table as $key=>$tr) {
         $td = explode('{td}', $tr);
         array_pop($td);
