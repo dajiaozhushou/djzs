@@ -26,6 +26,7 @@ function createMenu($data){
  curl_close($ch);
  return $tmpInfo;
 }
+
 //获取菜单
 function getMenu(){
  return file_get_contents("https://api.weixin.qq.com/cgi-bin/menu/get?access_token=".ACCESS_TOKEN);
