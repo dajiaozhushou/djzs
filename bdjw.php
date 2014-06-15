@@ -8,8 +8,7 @@
 		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.3.0/jquery.mobile.structure-1.3.0.min.css" />
 
 	</head>
-	<body>
-	
+	<body>	
 		<div data-role="page" >
 			<div data-role="header" data-position="inline">
 				<h1>感谢使用大交助手</h1>
